@@ -5,6 +5,9 @@ import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../services/advanced_search_service.dart';
 import '../services/favorites_service.dart';
+import '../models/martyr.dart';
+import '../models/injured.dart';
+import '../models/prisoner.dart';
 
 class AdvancedSearchScreen extends StatefulWidget {
   const AdvancedSearchScreen({Key? key}) : super(key: key);

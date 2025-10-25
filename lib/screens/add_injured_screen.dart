@@ -263,7 +263,6 @@ class _AddInjuredScreenState extends State<AddInjuredScreen> {
       }
     }
   }
-  }
 
   @override
   Widget build(BuildContext context) {

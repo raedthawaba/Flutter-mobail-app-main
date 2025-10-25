@@ -280,7 +280,6 @@ class _AddMartyrScreenState extends State<AddMartyrScreen> {
       }
     }
   }
-  }
 
   @override
   Widget build(BuildContext context) {
