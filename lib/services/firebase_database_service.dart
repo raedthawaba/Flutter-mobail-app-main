@@ -852,7 +852,7 @@ class FirebaseDatabaseService {
         throw Exception('البيانات غير موجودة');
       }
       
-      final pendingData = PendingData.fromFirestore(doc.data()!).copyWith(id: pendingId);
+      final pendingData = PendingData.fromFirestore(doc.data() as Map<String, dynamic>).copyWith(id: pendingId);
       
       // نقل البيانات إلى المجموعة الرئيسية
       switch (pendingData.type) {

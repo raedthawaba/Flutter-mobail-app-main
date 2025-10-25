@@ -6,6 +6,7 @@ import '../models/injured.dart';
 import '../models/prisoner.dart';
 import '../services/firebase_database_service.dart';
 import '../constants/app_constants.dart';
+import '../constants/app_colors.dart';
 
 class AdminApprovalScreen extends StatefulWidget {
   const AdminApprovalScreen({Key? key}) : super(key: key);
@@ -68,7 +69,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('إدارة البيانات المرسلة'),
-        backgroundColor: AppColors.primaryColor,
+        backgroundColor: AppColors.primaryGreen,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -598,34 +599,39 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
   /// إضافة البيانات المعتمدة إلى المجموعة الرئيسية
   Future<void> _insertApprovedData(PendingData item) async {
     try {
-      // إضافة status = 'approved' للبيانات
+      // إضافة البيانات المطلوبة للـ models الأصلية
       final approvedData = Map<String, dynamic>.from(item.data);
-      approvedData['status'] = 'approved';
-      approvedData['approvedAt'] = DateTime.now().millisecondsSinceEpoch;
-      approvedData['approvedBy'] = 'admin'; // يمكن تحسين هذا لاحقاً
       
-      // إضافة URLs للصور وملفات السيرة
+      // تحويل أسماء الحقول لتطابق النماذج الأصلية
+      approvedData['status'] = 'approved';
+      approvedData['created_at'] = DateTime.now().toIso8601String();
+      approvedData['added_by_user_id'] = 'admin'; // UID افتراضي للمسؤول
+      approvedData['contact_family'] = approvedData['contact_family'] ?? '';
+      
+      // تحديد اسم المؤسسة للـ tribe
+      if (!approvedData.containsKey('tribe')) {
+        approvedData['tribe'] = 'غير محدد';
+      }
+      
+      // إضافة URLs للصور وملفات السيرة (أسماء الحقول الصحيحة)
       if (item.imageUrl != null) {
-        approvedData['photoUrl'] = item.imageUrl;
+        approvedData['photo_path'] = item.imageUrl;
       }
       if (item.resumeUrl != null) {
-        approvedData['resumeUrl'] = item.resumeUrl;
+        approvedData['cv_file_path'] = item.resumeUrl;
       }
 
       switch (item.type) {
         case 'martyr':
           final martyr = Martyr.fromMap(approvedData);
-          martyr.status = 'approved';
           await _dbService.insertMartyr(martyr);
           break;
         case 'injured':
           final injured = Injured.fromMap(approvedData);
-          injured.status = 'approved';
           await _dbService.insertInjured(injured);
           break;
         case 'prisoner':
           final prisoner = Prisoner.fromMap(approvedData);
-          prisoner.status = 'approved';
           await _dbService.insertPrisoner(prisoner);
           break;
       }

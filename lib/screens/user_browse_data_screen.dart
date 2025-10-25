@@ -24,6 +24,11 @@ class _UserBrowseDataScreenState extends State<UserBrowseDataScreen> {
   bool _isLoading = true;
   String _searchQuery = '';
 
+  // Helper function to format dates
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -34,7 +39,19 @@ class _UserBrowseDataScreenState extends State<UserBrowseDataScreen> {
     setState(() => _isLoading = true);
     
     try {
-      List<dynamic> data = await _firebaseService.getAllApprovedData(widget.dataType);
+      List<dynamic> data = [];
+      
+      switch (widget.dataType) {
+        case 'martyrs':
+          data = await _firebaseService.getAllApprovedMartyrs();
+          break;
+        case 'injured':
+          data = await _firebaseService.getAllApprovedInjured();
+          break;
+        case 'prisoners':
+          data = await _firebaseService.getAllApprovedPrisoners();
+          break;
+      }
       
       setState(() {
         _dataList = data;
@@ -42,271 +59,16 @@ class _UserBrowseDataScreenState extends State<UserBrowseDataScreen> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      _showErrorMessage('خطأ في تحميل البيانات: ${e.toString()}');
-    }
-  }
-
-  void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.error,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _showDataDetails(dynamic item) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(
-              _getIconForType(widget.dataType),
-              color: _getColorForType(widget.dataType),
-            ),
-            const SizedBox(width: 8),
-            Text(_getTitleForType(widget.dataType)),
-          ],
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: _buildDataDetails(item),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('إغلاق'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _buildDataDetails(dynamic item) {
-    List<Widget> widgets = [];
-
-    // إضافة صورة إذا وجدت
-    if (item is Martyr && item.photoUrl?.isNotEmpty == true) {
-      widgets.add(
-        Center(
-          child: Container(
-            width: 120,
-            height: 120,
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: _getColorForType(widget.dataType),
-                width: 3,
-              ),
-            ),
-            child: ClipOval(
-              child: Image.network(
-                item.photoUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Icon(
-                    Icons.person,
-                    size: 60,
-                    color: AppColors.textSecondary,
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
-      );
-    } else if (item is Injured && item.photoUrl?.isNotEmpty == true) {
-      widgets.add(
-        Center(
-          child: Container(
-            width: 120,
-            height: 120,
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: _getColorForType(widget.dataType),
-                width: 3,
-              ),
-            ),
-            child: ClipOval(
-              child: Image.network(
-                item.photoUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Icon(
-                    Icons.person,
-                    size: 60,
-                    color: AppColors.textSecondary,
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
-      );
-    } else if (item is Prisoner && item.photoUrl?.isNotEmpty == true) {
-      widgets.add(
-        Center(
-          child: Container(
-            width: 120,
-            height: 120,
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: _getColorForType(widget.dataType),
-                width: 3,
-              ),
-            ),
-            child: ClipOval(
-              child: Image.network(
-                item.photoUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Icon(
-                    Icons.person,
-                    size: 60,
-                    color: AppColors.textSecondary,
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('خطأ في تحميل البيانات: $e')),
       );
     }
-
-    if (item is Martyr) {
-      widgets.addAll([
-        _buildDetailRow('الاسم الكامل', item.fullName),
-        _buildDetailRow('تاريخ الوفاة', item.deathDate),
-        _buildDetailRow('مكان الوفاة', item.deathPlace),
-        _buildDetailRow('السبب', item.deathReason),
-        _buildDetailRow('العمر', '${item.age ?? 'غير محدد'} سنة'),
-        _buildDetailRow('الجنس', item.gender),
-        _buildDetailRow('رقم الهاتف', item.phoneNumber ?? 'غير متوفر'),
-        _buildDetailRow('العنوان', item.address ?? 'غير متوفر'),
-        if (item.notes?.isNotEmpty == true)
-          _buildDetailRow('ملاحظات', item.notes!),
-      ]);
-    } else if (item is Injured) {
-      widgets.addAll([
-        _buildDetailRow('الاسم الكامل', item.fullName),
-        _buildDetailRow('تاريخ الإصابة', item.injuryDate),
-        _buildDetailRow('مكان الإصابة', item.injuryPlace),
-        _buildDetailRow('نوع الإصابة', item.injuryType),
-        _buildDetailRow('الدرجة', item.degree),
-        _buildDetailRow('العمر', '${item.age ?? 'غير محدد'} سنة'),
-        _buildDetailRow('الجنس', item.gender),
-        _buildDetailRow('رقم الهاتف', item.phoneNumber ?? 'غير متوفر'),
-        _buildDetailRow('العنوان', item.address ?? 'غير متوفر'),
-        if (item.notes?.isNotEmpty == true)
-          _buildDetailRow('ملاحظات', item.notes!),
-      ]);
-    } else if (item is Prisoner) {
-      widgets.addAll([
-        _buildDetailRow('الاسم الكامل', item.fullName),
-        _buildDetailRow('تاريخ الأسر', item.captureDate),
-        _buildDetailRow('مكان الأسر', item.capturePlace),
-        _buildDetailRow('مكان الاعتقال', item.detentionPlace ?? 'غير محدد'),
-        _buildDetailRow('العمر', '${item.age ?? 'غير محدد'} سنة'),
-        _buildDetailRow('الجنس', item.gender),
-        _buildDetailRow('رقم الهاتف', item.phoneNumber ?? 'غير متوفر'),
-        _buildDetailRow('العنوان', item.address ?? 'غير متوفر'),
-        if (item.notes?.isNotEmpty == true)
-          _buildDetailRow('ملاحظات', item.notes!),
-      ]);
-    }
-
-    return widgets;
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: AppColors.textSecondary,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value.isEmpty ? 'غير محدد' : value,
-            style: const TextStyle(
-              fontSize: 16,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const Divider(height: 20),
-        ],
-      ),
-    );
-  }
-
-  IconData _getIconForType(String type) {
-    switch (type) {
-      case 'martyrs':
-        return Icons.person_off_outlined;
-      case 'injured':
-        return Icons.healing_outlined;
-      case 'prisoners':
-        return Icons.lock_person_outlined;
-      default:
-        return Icons.data_object;
-    }
-  }
-
-  Color _getColorForType(String type) {
-    switch (type) {
-      case 'martyrs':
-        return AppColors.primaryRed;
-      case 'injured':
-        return AppColors.warning;
-      case 'prisoners':
-        return AppColors.earthBrown;
-      default:
-        return AppColors.primaryGreen;
-    }
-  }
-
-  String _getTitleForType(String type) {
-    switch (type) {
-      case 'martyrs':
-        return 'بيانات الشهيد';
-      case 'injured':
-        return 'بيانات الجريح';
-      case 'prisoners':
-        return 'بيانات الأسير';
-      default:
-        return 'البيانات';
-    }
-  }
-
-  String _getSubtitleForItem(dynamic item) {
-    if (item is Martyr) {
-      return item.deathPlace ?? 'غير محدد';
-    } else if (item is Injured) {
-      return item.injuryPlace ?? 'غير محدد';
-    } else if (item is Prisoner) {
-      return item.capturePlace ?? 'غير محدد';
-    }
-    return 'غير محدد';
+  void _onSearchChanged(String value) {
+    setState(() {
+      _searchQuery = value;
+    });
   }
 
   List<dynamic> get _filteredData {
@@ -315,19 +77,60 @@ class _UserBrowseDataScreenState extends State<UserBrowseDataScreen> {
     }
     
     return _dataList.where((item) {
-      String query = _searchQuery.toLowerCase();
+      String name = '';
+      String location = '';
+      
       if (item is Martyr) {
-        return item.fullName.toLowerCase().contains(query) ||
-               (item.deathPlace?.toLowerCase().contains(query) ?? false);
+        name = item.fullName.toLowerCase();
+        location = item.deathPlace.toLowerCase();
       } else if (item is Injured) {
-        return item.fullName.toLowerCase().contains(query) ||
-               (item.injuryPlace?.toLowerCase().contains(query) ?? false);
+        name = item.fullName.toLowerCase();
+        location = item.injuryPlace.toLowerCase();
       } else if (item is Prisoner) {
-        return item.fullName.toLowerCase().contains(query) ||
-               (item.capturePlace?.toLowerCase().contains(query) ?? false);
+        name = item.fullName.toLowerCase();
+        location = item.capturePlace.toLowerCase();
       }
-      return false;
+      
+      return name.contains(_searchQuery.toLowerCase()) ||
+             location.contains(_searchQuery.toLowerCase());
     }).toList();
+  }
+
+  String _getImagePath(dynamic item) {
+    if (item is Martyr && item.photoPath?.isNotEmpty == true) {
+      return item.photoPath!;
+    } else if (item is Injured && item.photoPath?.isNotEmpty == true) {
+      return item.photoPath!;
+    } else if (item is Prisoner && item.photoPath?.isNotEmpty == true) {
+      return item.photoPath!;
+    }
+    return '';
+  }
+
+  Color _getTypeColor() {
+    switch (widget.dataType) {
+      case 'martyrs':
+        return AppColors.primaryRed;
+      case 'injured':
+        return AppColors.primaryGreen;
+      case 'prisoners':
+        return AppColors.earthBrown;
+      default:
+        return AppColors.primaryGreen;
+    }
+  }
+
+  String _getTypeTitle() {
+    switch (widget.dataType) {
+      case 'martyrs':
+        return 'الشهداء';
+      case 'injured':
+        return 'الجرحى';
+      case 'prisoners':
+        return 'الأسرى';
+      default:
+        return 'البيانات';
+    }
   }
 
   @override
@@ -335,210 +138,326 @@ class _UserBrowseDataScreenState extends State<UserBrowseDataScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'تصفح ${_getTitleForType(widget.dataType)}',
+          'تصفح ${_getTypeTitle()} المعتمدين',
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             color: AppColors.primaryWhite,
           ),
         ),
         centerTitle: true,
-        backgroundColor: _getColorForType(widget.dataType),
+        backgroundColor: _getTypeColor(),
         elevation: 4,
-        iconTheme: const IconThemeData(
-          color: AppColors.primaryWhite,
-        ),
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              _getColorForType(widget.dataType).withOpacity(0.1),
-              AppColors.primaryWhite,
-            ],
+        actions: [
+          IconButton(
+            onPressed: _loadData,
+            icon: const Icon(
+              Icons.refresh,
+              color: AppColors.primaryWhite,
+            ),
+            tooltip: 'تحديث البيانات',
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // شريط البحث
-              Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryWhite,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: _getColorForType(widget.dataType).withOpacity(0.3),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(
+              Icons.arrow_back,
+              color: AppColors.primaryWhite,
+            ),
+            tooltip: 'العودة',
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Search bar
+          Container(
+            margin: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  spreadRadius: 1,
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.search,
-                      color: _getColorForType(widget.dataType),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        decoration: const InputDecoration(
-                          hintText: 'ابحث بالاسم أو المكان...',
-                          border: InputBorder.none,
+              ],
+            ),
+            child: TextField(
+              onChanged: _onSearchChanged,
+              decoration: InputDecoration(
+                hintText: 'البحث بالاسم أو المكان...',
+                hintStyle: TextStyle(color: Colors.grey[600]),
+                prefixIcon: const Icon(Icons.search),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+              ),
+            ),
+          ),
+          
+          // Content
+          Expanded(
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(),
+                  )
+                : _filteredData.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.search_off,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'لا توجد بيانات',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _searchQuery.isNotEmpty 
+                                  ? 'لا توجد نتائج للبحث عن "$_searchQuery"'
+                                  : 'لم يتم إضافة أي بيانات بعد',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[500],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
-                        onChanged: (value) {
-                          setState(() {
-                            _searchQuery = value;
-                          });
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: _filteredData.length,
+                        itemBuilder: (context, index) {
+                          return _buildDataCard(_filteredData[index]);
                         },
                       ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // قائمة البيانات
-              Expanded(
-                child: _isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(),
-                      )
-                    : _filteredData.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.search_off,
-                                  size: 64,
-                                  color: AppColors.textSecondary,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _searchQuery.isEmpty 
-                                      ? 'لا توجد بيانات متاحة'
-                                      : 'لا توجد نتائج مطابقة للبحث',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: _filteredData.length,
-                            itemBuilder: (context, index) {
-                              final item = _filteredData[index];
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                elevation: 4,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: InkWell(
-                                  onTap: () => _showDataDetails(item),
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Row(
-                                      children: [
-                                        // صورة المستخدم أو أيقونة
-                                        Container(
-                                          width: 50,
-                                          height: 50,
-                                          decoration: BoxDecoration(
-                                            color: _getColorForType(widget.dataType).withOpacity(0.2),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: ClipOval(
-                                            child: (() {
-                                              // عرض الصورة إذا وجدت
-                                              String? photoUrl;
-                                              if (item is Martyr && item.photoUrl?.isNotEmpty == true) {
-                                                photoUrl = item.photoUrl;
-                                              } else if (item is Injured && item.photoUrl?.isNotEmpty == true) {
-                                                photoUrl = item.photoUrl;
-                                              } else if (item is Prisoner && item.photoUrl?.isNotEmpty == true) {
-                                                photoUrl = item.photoUrl;
-                                              }
-                                              
-                                              if (photoUrl != null) {
-                                                return Image.network(
-                                                  photoUrl,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (context, error, stackTrace) {
-                                                    return Icon(
-                                                      _getIconForType(widget.dataType),
-                                                      color: _getColorForType(widget.dataType),
-                                                      size: 24,
-                                                    );
-                                                  },
-                                                );
-                                              } else {
-                                                return Icon(
-                                                  _getIconForType(widget.dataType),
-                                                  color: _getColorForType(widget.dataType),
-                                                  size: 24,
-                                                );
-                                              }
-                                            })(),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        
-                                        // معلومات البيانات
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                item.fullName,
-                                                style: const TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: AppColors.textPrimary,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                _getSubtitleForItem(item),
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: AppColors.textSecondary,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        
-                                        // أيقونة التفاصيل
-                                        Icon(
-                                          Icons.arrow_forward_ios,
-                                          size: 16,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-              ),
-            ],
           ),
-        ),
+        ],
       ),
     );
+  }
+
+  Widget _buildDataCard(dynamic item) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Image section
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            child: Container(
+              height: 200,
+              width: double.infinity,
+              color: _getTypeColor().withOpacity(0.1),
+              child: _buildImageWidget(item),
+            ),
+          ),
+          
+          // Content section
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeaderSection(item),
+                const SizedBox(height: 12),
+                _buildDetailsSection(item),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImageWidget(dynamic item) {
+    String imagePath = _getImagePath(item);
+    
+    if (imagePath.isNotEmpty) {
+      return Image.network(
+        imagePath,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildNoImageWidget();
+        },
+      );
+    } else {
+      return _buildNoImageWidget();
+    }
+  }
+
+  Widget _buildNoImageWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.person_off,
+            size: 64,
+            color: _getTypeColor(),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'لا توجد صورة',
+            style: TextStyle(
+              color: _getTypeColor(),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderSection(dynamic item) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                item.fullName,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryBlack,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: _getTypeColor(),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                _getDataTypeLabel(item),
+                style: const TextStyle(
+                  color: AppColors.primaryWhite,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'ID: ${item.idNumber}',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailsSection(dynamic item) {
+    List<Widget> widgets = [];
+    
+    if (item is Martyr) {
+      widgets.addAll([
+        _buildDetailRow('الاسم الكامل', item.fullName),
+        _buildDetailRow('تاريخ الوفاة', _formatDate(item.deathDate)),
+        _buildDetailRow('القبيلة/المنطقة', item.tribe),
+        _buildDetailRow('مكان الوفاة', item.deathPlace),
+        _buildDetailRow('السبب', item.causeOfDeath),
+        _buildDetailRow('العمر', '${item.age} سنة'),
+        if (item.notes?.isNotEmpty == true)
+          _buildDetailRow('ملاحظات', item.notes!),
+      ]);
+    } else if (item is Injured) {
+      widgets.addAll([
+        _buildDetailRow('الاسم الكامل', item.fullName),
+        _buildDetailRow('تاريخ الإصابة', _formatDate(item.injuryDate)),
+        _buildDetailRow('القبيلة/المنطقة', item.tribe),
+        _buildDetailRow('مكان الإصابة', item.injuryPlace),
+        _buildDetailRow('نوع الإصابة', item.injuryType),
+        _buildDetailRow('درجة الإصابة', item.injuryDegree),
+        _buildDetailRow('الوصف', item.injuryDescription),
+        if (item.notes?.isNotEmpty == true)
+          _buildDetailRow('ملاحظات', item.notes!),
+      ]);
+    } else if (item is Prisoner) {
+      widgets.addAll([
+        _buildDetailRow('الاسم الكامل', item.fullName),
+        _buildDetailRow('تاريخ الأسر', _formatDate(item.captureDate)),
+        _buildDetailRow('القبيلة/المنطقة', item.tribe),
+        _buildDetailRow('مكان الأسر', item.capturePlace),
+        _buildDetailRow('جهة الأسر', item.capturedBy),
+        _buildDetailRow('الحالة الحالية', item.currentStatus),
+        if (item.notes?.isNotEmpty == true)
+          _buildDetailRow('ملاحظات', item.notes!),
+      ]);
+    }
+    
+    return Column(
+      children: widgets,
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryBlack,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: AppColors.primaryBlack,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getDataTypeLabel(dynamic item) {
+    if (item is Martyr) return 'شهيد';
+    if (item is Injured) return 'جريح';
+    if (item is Prisoner) return 'أسير';
+    return 'غير محدد';
   }
 }
