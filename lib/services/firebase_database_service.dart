@@ -618,7 +618,7 @@ class FirebaseDatabaseService {
 
       // التحقق من Custom Claims أولاً
       final IdTokenResult tokenResult = await currentUser.getIdTokenResult();
-      final role = tokenResult.claims['role'] as String?;
+      final role = tokenResult.claims?['role'] as String?;
       
       if (role != null) return role;
 

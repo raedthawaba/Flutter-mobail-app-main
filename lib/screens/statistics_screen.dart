@@ -697,7 +697,6 @@ class _StatisticsScreenState extends State<StatisticsScreen>
               interval: 1,
               getTitlesWidget: (value, meta) {
                 return SideTitleWidget(
-                  meta: meta,
                   child: Text('${value.toInt()}'),
                 );
               },
@@ -709,7 +708,6 @@ class _StatisticsScreenState extends State<StatisticsScreen>
               interval: 5,
               getTitlesWidget: (value, meta) {
                 return SideTitleWidget(
-                  meta: meta,
                   child: Text('${value.toInt()}'),
                 );
               },
