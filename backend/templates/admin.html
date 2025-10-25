@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم الشهداء والجرحى والأسرى</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .main-container {
+            padding: 2rem 0;
+        }
+        
+        .stats-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .stats-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .table-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+        }
+        
+        .btn-action {
+            margin: 0 2px;
+            font-size: 0.8rem;
+        }
+        
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-approved {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+        
+        .status-rejected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 3rem;
+            min-width: 400px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .spinner-border {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-container">
+        <div class="login-card">
+            <div class="text-center mb-4">
+                <i class="bi bi-shield-lock text-primary" style="font-size: 4rem;"></i>
+                <h2 class="mt-3 mb-4">لوحة تحكم المسؤول</h2>
+            </div>
+            
+            <form id="loginForm">
+                <div class="mb-3">
+                    <label for="username" class="form-label">اسم المستخدم</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input type="text" class="form-control" id="username" required>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="password" class="form-label">كلمة المرور</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <input type="password" class="form-control" id="password" required>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary w-100 py-2">
+                    <i class="bi bi-box-arrow-in-left me-2"></i>
+                    تسجيل الدخول
+                </button>
+            </form>
+            
+            <div id="loginError" class="alert alert-danger mt-3" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="mainDashboard" style="display: none;">
+        <!-- Navigation -->
+        <nav class="navbar navbar-expand-lg navbar-light">
+            <div class="container">
+                <a class="navbar-brand fw-bold" href="#">
+                    <i class="bi bi-shield-check text-primary me-2"></i>
+                    لوحة تحكم الشهداء والجرحى والأسرى
+                </a>
+                
+                <div class="navbar-nav ms-auto">
+                    <span class="navbar-text me-3">
+                        <i class="bi bi-person-circle me-1"></i>
+                        <span id="currentUser"></span>
+                    </span>
+                    <button class="btn btn-outline-danger btn-sm" onclick="logout()">
+                        <i class="bi bi-box-arrow-right me-1"></i>
+                        تسجيل الخروج
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="main-container">
+            <div class="container">
+                <!-- Statistics Cards -->
+                <div class="row mb-5">
+                    <div class="col-md-3 mb-4">
+                        <div class="stats-card p-4 text-center">
+                            <i class="bi bi-heart-fill text-danger stats-icon"></i>
+                            <h3 class="fw-bold mb-2" id="totalMartyrs">0</h3>
+                            <h6 class="text-muted">إجمالي الشهداء</h6>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="stats-card p-4 text-center">
+                            <i class="bi bi-bandaid-fill text-warning stats-icon"></i>
+                            <h3 class="fw-bold mb-2" id="totalInjured">0</h3>
+                            <h6 class="text-muted">إجمالي الجرحى</h6>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="stats-card p-4 text-center">
+                            <i class="bi bi-lock-fill text-info stats-icon"></i>
+                            <h3 class="fw-bold mb-2" id="totalPrisoners">0</h3>
+                            <h6 class="text-muted">إجمالي الأسرى</h6>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-4">
+                        <div class="stats-card p-4 text-center">
+                            <i class="bi bi-clock-fill text-secondary stats-icon"></i>
+                            <h3 class="fw-bold mb-2" id="totalPending">0</h3>
+                            <h6 class="text-muted">في انتظار المراجعة</h6>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <ul class="nav nav-pills justify-content-center mb-4" id="mainTabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#martyrs" data-bs-toggle="pill">
+                            <i class="bi bi-heart-fill me-2"></i>الشهداء
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#injured" data-bs-toggle="pill">
+                            <i class="bi bi-bandaid-fill me-2"></i>الجرحى
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#prisoners" data-bs-toggle="pill">
+                            <i class="bi bi-lock-fill me-2"></i>الأسرى
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#users" data-bs-toggle="pill">
+                            <i class="bi bi-people-fill me-2"></i>المستخدمين
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content">
+                    <!-- Martyrs Tab -->
+                    <div class="tab-pane fade show active" id="martyrs">
+                        <div class="table-container p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-heart-fill text-danger me-2"></i>
+                                    قائمة الشهداء
+                                </h5>
+                                <button class="btn btn-primary" onclick="loadMartyrs()">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>تحديث
+                                </button>
+                            </div>
+                            
+                            <div id="martyrsLoading" class="loading">
+                                <div class="spinner-border" role="status"></div>
+                                <p class="mt-2">جاري تحميل البيانات...</p>
+                            </div>
+                            
+                            <div id="martyrsTable"></div>
+                        </div>
+                    </div>
+
+                    <!-- Injured Tab -->
+                    <div class="tab-pane fade" id="injured">
+                        <div class="table-container p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-bandaid-fill text-warning me-2"></i>
+                                    قائمة الجرحى
+                                </h5>
+                                <button class="btn btn-primary" onclick="loadInjured()">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>تحديث
+                                </button>
+                            </div>
+                            
+                            <div id="injuredLoading" class="loading">
+                                <div class="spinner-border" role="status"></div>
+                                <p class="mt-2">جاري تحميل البيانات...</p>
+                            </div>
+                            
+                            <div id="injuredTable"></div>
+                        </div>
+                    </div>
+
+                    <!-- Prisoners Tab -->
+                    <div class="tab-pane fade" id="prisoners">
+                        <div class="table-container p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-lock-fill text-info me-2"></i>
+                                    قائمة الأسرى
+                                </h5>
+                                <button class="btn btn-primary" onclick="loadPrisoners()">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>تحديث
+                                </button>
+                            </div>
+                            
+                            <div id="prisonersLoading" class="loading">
+                                <div class="spinner-border" role="status"></div>
+                                <p class="mt-2">جاري تحميل البيانات...</p>
+                            </div>
+                            
+                            <div id="prisonersTable"></div>
+                        </div>
+                    </div>
+
+                    <!-- Users Tab -->
+                    <div class="tab-pane fade" id="users">
+                        <div class="table-container p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-people-fill text-success me-2"></i>
+                                    قائمة المستخدمين
+                                </h5>
+                                <button class="btn btn-primary" onclick="loadUsers()">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>تحديث
+                                </button>
+                            </div>
+                            
+                            <div id="usersLoading" class="loading">
+                                <div class="spinner-border" role="status"></div>
+                                <p class="mt-2">جاري تحميل البيانات...</p>
+                            </div>
+                            
+                            <div id="usersTable"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Main JavaScript -->
+    <script src="admin.js"></script>
+</body>
+</html>

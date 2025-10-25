@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "521943549759",
+    "project_id": "flutter-mobail-app",
+    "storage_bucket": "flutter-mobail-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:521943549759:android:f9dd4566211dc19485b58a",
+        "android_client_info": {
+          "package_name": "com.example.palestinemartyrs"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0ixuQkqw6mLz_TJyMuvxgoda-7EHYLpE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,235 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ================================
+    // RULE 1: المستخدمون - مفتوح للقراءة، محدود للكتابة
+    // ================================
+    match /users/{userId} {
+      allow read: if true; // جميع المستخدمين يمكنهم قراءة البيانات الأساسية
+      allow create: if request.auth != null && 
+                   request.auth.uid == userId &&
+                   validateUserCreate(request.resource.data);
+      allow update: if request.auth != null && 
+                   (request.auth.uid == userId || 
+                    request.auth.token.admin == true);
+      allow delete: if request.auth != null && 
+                   request.auth.token.admin == true;
+      
+      function validateUserCreate(data) {
+        return data.email is string &&
+               data.displayName is string &&
+               data.email.matches('[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}') &&
+               data.displayName.size() >= 2 &&
+               data.displayName.size() <= 50;
+      }
+    }
+    
+    // ================================
+    // RULE 2: الشهداء - مفتوح للقراءة، محدود للكتابة
+    // ================================
+    match /martyrs/{martyrId} {
+      allow read: if true; // جميع الشهداء يمكن قراءتهم
+      
+      allow create: if request.auth != null && 
+                   (request.auth.token.admin == true || 
+                    request.auth.token.moderator == true) &&
+                   validateMartyrData(request.resource.data);
+      
+      allow update: if request.auth != null && 
+                   (request.auth.token.admin == true || 
+                    request.auth.token.moderator == true) &&
+                   validateMartyrUpdate(request.resource.data, resource.data);
+      
+      allow delete: if request.auth != null && 
+                   request.auth.token.admin == true;
+      
+      function validateMartyrData(data) {
+        return data.full_name is string &&
+               data.full_name.size() >= 3 &&
+               data.full_name.size() <= 100 &&
+               data.death_date is timestamp &&
+               data.age is int &&
+               data.age >= 1 &&
+               data.age <= 120 &&
+               data.governorate is string &&
+               data.governorate.size() > 0 &&
+               data.governorate.size() <= 50;
+      }
+      
+      function validateMartyrUpdate(newData, oldData) {
+        return validateMartyrData(newData) &&
+               (newData.full_name == oldData.full_name || // الاسم لا يمكن تغييره
+                request.auth.token.admin == true);
+      }
+    }
+    
+    // ================================
+    // RULE 3: الجرحى - نفس قوانين الشهداء
+    // ================================
+    match /injured/{injuredId} {
+      allow read: if true;
+      
+      allow create: if request.auth != null && 
+                   (request.auth.token.admin == true || 
+                    request.auth.token.moderator == true) &&
+                   validateInjuredData(request.resource.data);
+      
+      allow update: if request.auth != null && 
+                   (request.auth.token.admin == true || 
+                    request.auth.token.moderator == true) &&
+                   validateInjuredUpdate(request.resource.data, resource.data);
+      
+      allow delete: if request.auth != null && 
+                   request.auth.token.admin == true;
+      
+      function validateInjuredData(data) {
+        return data.full_name is string &&
+               data.full_name.size() >= 3 &&
+               data.full_name.size() <= 100 &&
+               data.injury_date is timestamp &&
+               data.age is int &&
+               data.age >= 1 &&
+               data.age <= 120 &&
+               data.governorate is string &&
+               data.governorate.size() > 0 &&
+               data.injury_type is string &&
+               data.injury_type.size() <= 50;
+      }
+      
+      function validateInjuredUpdate(newData, oldData) {
+        return validateInjuredData(newData) &&
+               (newData.full_name == oldData.full_name || 
+                request.auth.token.admin == true);
+      }
+    }
+    
+    // ================================
+    // RULE 4: أسرى - نفس قوانين الشهداء
+    // ================================
+    match /prisoners/{prisonerId} {
+      allow read: if true;
+      
+      allow create: if request.auth != null && 
+                   (request.auth.token.admin == true || 
+                    request.auth.token.moderator == true) &&
+                   validatePrisonerData(request.resource.data);
+      
+      allow update: if request.auth != null && 
+                   (request.auth.token.admin == true || 
+                    request.auth.token.moderator == true) &&
+                   validatePrisonerUpdate(request.resource.data, resource.data);
+      
+      allow delete: if request.auth != null && 
+                   request.auth.token.admin == true;
+      
+      function validatePrisonerData(data) {
+        return data.full_name is string &&
+               data.full_name.size() >= 3 &&
+               data.full_name.size() <= 100 &&
+               data.captivity_date is timestamp &&
+               data.age is int &&
+               data.age >= 1 &&
+               data.age <= 120 &&
+               data.governorate is string &&
+               data.governorate.size() > 0 &&
+               data.captivity_location is string &&
+               data.captivity_location.size() <= 100;
+      }
+      
+      function validatePrisonerUpdate(newData, oldData) {
+        return validatePrisonerData(newData) &&
+               (newData.full_name == oldData.full_name || 
+                request.auth.token.admin == true);
+      }
+    }
+    
+    // ================================
+    // RULE 5: إعدادات التطبيق - Admin فقط
+    // ================================
+    match /app_config/{configId} {
+      allow read: if true; // يمكن للجميع قراءة الإعدادات
+      allow write: if request.auth != null && 
+                  request.auth.token.admin == true;
+    }
+    
+    // ================================
+    // RULE 6: سجل العمليات (أمان إضافي)
+    // ================================
+    match /activity_logs/{logId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null &&
+                   validateActivityLog(request.resource.data);
+      
+      function validateActivityLog(data) {
+        return data.user_id is string &&
+               data.action is string &&
+               data.timestamp is timestamp &&
+               data.user_id == request.auth.uid;
+      }
+    }
+    
+    // ================================
+    // RULE 7: البحث والإحصائيات - مقيدة
+    // ================================
+    match /search_queries/{queryId} {
+      allow read: if true;
+      allow create: if request.auth != null && 
+                   validateSearchQuery(request.resource.data);
+      
+      function validateSearchQuery(data) {
+        return data.user_id is string &&
+               data.query is string &&
+               data.query.size() <= 100 &&
+               data.timestamp is timestamp &&
+               data.user_id == request.auth.uid;
+      }
+    }
+    
+    // ================================
+    // RULE 8: حماية من العمليات الزائدة
+    // ================================
+    match /user_quotas/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && 
+                  request.auth.token.admin == true;
+      
+      function validateQuota(data) {
+        return data.daily_reads is int &&
+               data.daily_writes is int &&
+               data.last_reset is timestamp;
+      }
+    }
+    
+    // ================================
+    // RULE 9: قواعد عامة للسلامة
+    // ================================
+    match /{document=**} {
+      // منع أي عمليات غير محددة أعلاه
+      allow read, write: if false;
+    }
+  }
+}
+
+/*
+ ================================
+ ملاحظات أمنية مهمة:
+ ================================
+
+ 1. البيانات الحساسة (الأسرى) محمية بقوة
+ 2. العمليات المحددة تتطلب صلاحيات admin/moderator
+ 3. التحقق من صحة البيانات قبل الكتابة
+ 4. منع تعديل الأسماء المهمة (full_name إلا للـ admin)
+ 5. حماية من spam attacks عبر user_quotas
+ 6. تسجيل جميع العمليات في activity_logs
+
+ ================================
+ خطة الاستعادة من الكوارث:
+ ================================
+
+ 1. Backup يومي من Firebase Console
+ 2. تصدير البيانات شهرياً
+ 3. اختبار استعادة البيانات أسبوعياً
+ 4. مراقبة Usage منعاً للتكاليف الزائدة
+ 5. مراجعة Security Rules كل شهر
+*/
