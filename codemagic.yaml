@@ -1,22 +1,227 @@
+# Palestine Martyrs App - Codemagic Build Configuration
+# تطبيق توثيق الشهداء والجرحى والأسرى
+# إعدادات البناء لـ Codemagic مع دعم فروع main و master
+
 workflows:
-  android-workflow:
-    name: Android Workflow
+  # Android Release Build
+  android-release:
+    name: Android Release Build
     max_build_duration: 60
+    instance_type: linux_x2
     environment:
+      android_signing:
+        - keystore_reference
+      vars:
+        PACKAGE_NAME: "com.palestine.martyrs"
+        GOOGLE_SERVICES_JSON: "google-services.json"
       flutter: stable
-      xcode: latest
-      cocoapods: default
+      java: 17
+    triggering:
+      # دعم فروع main و master - يحل مشكلة الاختلاف
+      branch_patterns:
+        - pattern: 'main'
+          include: true
+          source: true
+        - pattern: 'master'
+          include: true
+          source: true
+      events:
+        - push
+        - pull_request
+    artifacts:
+      - build/**/outputs/**/*.apk
+      - build/**/outputs/**/*.aab
     scripts:
-      - name: Get Flutter packages
+      - name: Setup Flutter
+        script: |
+          flutter --version
+          flutter config --no-analytics
+          flutter doctor -v
+      
+      - name: Get dependencies
         script: |
           flutter clean
           flutter pub get
-      - name: Build APK
+      
+      - name: Generate Firebase options
+        script: |
+          if [ -f "google-services.json" ]; then
+            echo "Firebase config found, configuring..."
+            flutterfire configure --yes --project=palestine-martyrs-app || echo "Firebase config skipped"
+          else
+            echo "Firebase config not found, skipping"
+          fi
+      
+      - name: Analyze code
+        script: |
+          flutter analyze || echo "Analysis warnings ignored"
+      
+      - name: Build Android APK
+        script: |
+          flutter build apk --release \
+            --build-number=$BUILD_NUMBER \
+            --build-name=$BUILD_NAME \
+            --dart-define=FIREBASE_COLLECTION_ENABLED=false
+      
+      - name: Build Android App Bundle
+        script: |
+          flutter build appbundle --release \
+            --build-number=$BUILD_NUMBER \
+            --build-name=$BUILD_NAME \
+            --dart-define=FIREBASE_COLLECTION_ENABLED=false
+
+  # Android Debug Build
+  android-debug:
+    name: Android Debug Build
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      vars:
+        PACKAGE_NAME: "com.palestine.martyrs"
+      flutter: stable
+      java: 17
+    triggering:
+      branch_patterns:
+        - pattern: 'main'
+          include: true
+          source: false  # No automatic trigger
+        - pattern: 'master'
+          include: true
+          source: false  # No automatic trigger
+    artifacts:
+      - build/**/outputs/**/*.apk
+    scripts:
+      - name: Setup
+        script: |
+          flutter clean
+          flutter pub get
+      
+      - name: Build Debug APK
         script: |
           flutter build apk --debug
+
+  # iOS Build Workflow (requires Mac instance)
+  ios-app:
+    name: iOS App Build
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      xcode: latest
+      ios_signing:
+        - provisioning_profile_reference
+      vars:
+        PACKAGE_NAME: "com.palestine.martyrs"
+        GOOGLE_SERVICES_PLIST: "GoogleService-Info.plist"
+      flutter: stable
+      java: 17
+    triggering:
+      branch_patterns:
+        - pattern: 'main'
+          include: true
+          source: true
+        - pattern: 'master'
+          include: true
+          source: true
     artifacts:
-      - build/app/outputs/flutter-apk/app-debug.apk
-    publishing:
-      email:
-        recipients:
-          - your-email@example.com
+      - build/**/outputs/**/*.ipa
+    scripts:
+      - name: Setup iOS
+        script: |
+          flutter clean
+          flutter pub get
+      
+      - name: Install iOS dependencies
+        script: |
+          cd ios && pod install
+      
+      - name: Build iOS App
+        script: |
+          flutter build ipa --release \
+            --build-number=$BUILD_NUMBER \
+            --build-name=$BUILD_NAME
+
+  # Web Build
+  web-build:
+    name: Web App Build
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      flutter: stable
+      java: 17
+    triggering:
+      branch_patterns:
+        - pattern: 'main'
+          include: true
+          source: true
+        - pattern: 'master'
+          include: true
+          source: true
+    artifacts:
+      - build/**/web/**/*
+    scripts:
+      - name: Build Web
+        script: |
+          flutter clean
+          flutter pub get
+          flutter build web --release
+
+  # Test & Analysis Workflow
+  test-workflow:
+    name: Test & Analysis
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      flutter: stable
+      java: 17
+    triggering:
+      branch_patterns:
+        - pattern: 'main'
+          include: true
+          source: false
+        - pattern: 'master'
+          include: true
+          source: false
+    scripts:
+      - name: Setup & Dependencies
+        script: |
+          flutter config --no-analytics
+          flutter pub get
+      
+      - name: Analyze code
+        script: |
+          flutter analyze --no-fatal-infos
+      
+      - name: Run tests
+        script: |
+          flutter test --no-test-assets
+      
+      - name: Format check
+        script: |
+          dart format --set-exit-if-changed lib/ test/
+
+# Universal workflow that detects platform
+universal-build:
+  name: Universal Build
+  max_build_duration: 60
+  instance_type: linux_x2
+  environment:
+    flutter: stable
+    java: 17
+  triggering:
+    branch_patterns:
+      - pattern: 'main'
+        include: true
+        source: true
+      - pattern: 'master'
+        include: true
+        source: true
+  scripts:
+    - name: Universal Build Setup
+      script: |
+        flutter --version
+        flutter config --no-analytics
+        flutter pub get
+        
+        # Build for all platforms
+        flutter build apk --release --split-per-abi
+        flutter build web --release
