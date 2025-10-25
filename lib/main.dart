@@ -20,17 +20,6 @@ void main() async {
     print('=== PALESTINE MARTYR APP STARTING ===');
     print('Flutter initialized successfully');
     
-    // تهيئة Firebase Firestore
-    print('Initializing Firebase Firestore...');
-    final FirebaseDatabaseService firebaseDbService = FirebaseDatabaseService();
-    await firebaseDbService.initializeFirebase();
-    print('✅ Firebase Firestore initialized successfully!');
-    
-    // تهيئة ThemeService
-    print('Initializing ThemeService...');
-    await ThemeService().initialize();
-    print('✅ ThemeService initialized successfully!');
-    
     // معالج الأخطاء العالمي لـ Flutter
     FlutterError.onError = (FlutterErrorDetails details) {
       print('=== FLUTTER ERROR CAUGHT ===');
@@ -39,7 +28,7 @@ void main() async {
       FlutterError.presentError(details);
     };
     
-    // تهيئة Firebase
+    // تهيئة Firebase أولاً - هذا مهم!
     try {
       print('Initializing Firebase...');
       await Firebase.initializeApp(
@@ -54,6 +43,19 @@ void main() async {
       initError = e.toString();
       // لا نتوقف هنا، نستمر بدون Firebase
     }
+    
+    // تهيئة Firebase Firestore بعد تهيئة Firebase الأساسية
+    if (firebaseInitialized) {
+      print('Initializing Firebase Firestore...');
+      final FirebaseDatabaseService firebaseDbService = FirebaseDatabaseService();
+      await firebaseDbService.initializeFirebase();
+      print('✅ Firebase Firestore initialized successfully!');
+    }
+    
+    // تهيئة ThemeService
+    print('Initializing ThemeService...');
+    await ThemeService().initialize();
+    print('✅ ThemeService initialized successfully!');
     
     // تشغيل التطبيق
     runApp(PalestineMartyrApp(
