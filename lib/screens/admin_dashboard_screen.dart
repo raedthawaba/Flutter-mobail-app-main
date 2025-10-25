@@ -46,14 +46,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     try {
       final adminName = await _authService.getCurrentUserName();
       
-      // جلب البيانات من قاعدة البيانات المحلية
-      final DatabaseService dbService = DatabaseService();
-      final localStats = await dbService.getStatistics();
+      // جلب البيانات من قاعدة بيانات Firebase
+      final FirebaseDatabaseService dbService = FirebaseDatabaseService();
+      final firebaseStats = await dbService.getStatistics();
       
       if (mounted) {
         setState(() {
           _adminName = adminName;
-          _statistics = localStats;
+          _statistics = firebaseStats;
           _isLoading = false;
         });
       }

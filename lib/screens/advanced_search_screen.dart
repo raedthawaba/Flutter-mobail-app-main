@@ -588,9 +588,28 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen>
   }
 
   Widget _buildResultCard(dynamic result, String type) {
-    String title = result['name'] ?? 'غير محدد';
-    String subtitle = result['location'] ?? 'غير محدد';
-    String status = result['status'] ?? '';
+    String title = 'غير محدد';
+    String subtitle = 'غير محدد';
+    String status = '';
+    dynamic itemId;
+    
+    // تحديد نوع البيانات والوصول للحقول المناسبة
+    if (result is Martyr) {
+      title = result.fullName ?? 'غير محدد';
+      subtitle = result.deathPlace ?? 'غير محدد';
+      status = result.status ?? '';
+      itemId = result.id;
+    } else if (result is Injured) {
+      title = result.fullName ?? 'غير محدد';
+      subtitle = result.injuryPlace ?? 'غير محدد';
+      status = result.status ?? '';
+      itemId = result.id;
+    } else if (result is Prisoner) {
+      title = result.fullName ?? 'غير محدد';
+      subtitle = result.capturePlace ?? 'غير محدد';
+      status = result.status ?? '';
+      itemId = result.id;
+    }
     
     Color statusColor = _getStatusColor(status);
     
@@ -636,7 +655,7 @@ class _AdvancedSearchScreenState extends State<AdvancedSearchScreen>
           children: [
             IconButton(
               icon: const Icon(Icons.favorite_border),
-              onPressed: () => _toggleFavorite(result['id'], type),
+              onPressed: () => _toggleFavorite(itemId, type),
             ),
             IconButton(
               icon: const Icon(Icons.arrow_forward_ios),
