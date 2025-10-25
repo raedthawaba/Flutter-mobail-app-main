@@ -52,7 +52,7 @@ class FirebaseDatabaseService {
       // في الإنتاج يجب التحقق من كلمة المرور المشفرة
       // هنا نفترض أن البيانات صالحة للتبسيط
       data['uid'] = doc.id;
-      return User.fromMap(data);
+      return app_user.User.fromMap(data);
     } catch (e) {
       throw Exception('خطأ في جلب المستخدم: $e');
     }
@@ -68,7 +68,7 @@ class FirebaseDatabaseService {
       
       final data = Map<String, dynamic>.from(doc.data() as Map<String, dynamic>);
       data['uid'] = uid;
-      return User.fromMap(data);
+      return app_user.User.fromMap(data);
     } catch (e) {
       throw Exception('خطأ في جلب المستخدم: $e');
     }
@@ -86,7 +86,7 @@ class FirebaseDatabaseService {
         final doc = querySnapshot.docs.first;
         final data = doc.data() as Map<String, dynamic>;
         data['uid'] = doc.id;
-        return User.fromMap(data);
+        return app_user.User.fromMap(data);
       }
       return null;
     } catch (e) {
@@ -129,7 +129,7 @@ class FirebaseDatabaseService {
       return querySnapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
         data['uid'] = doc.id;
-        return User.fromMap(data);
+        return app_user.User.fromMap(data);
       }).toList();
     } catch (e) {
       throw Exception('خطأ في جلب المستخدمين: $e');
@@ -659,14 +659,7 @@ class FirebaseDatabaseService {
   /// التحقق من دور مستخدم محدد
   Future<String?> getUserRole(String uid) async {
     try {
-      // التحقق من Custom Claims
-      final UserRecord? userRecord = await _auth.getUser(uid);
-      final IdTokenResult tokenResult = await userRecord!.getIdTokenResult();
-      final role = tokenResult.claims['role'] as String?;
-      
-      if (role != null) return role;
-
-      // التحقق من Firestore كبديل
+      // التحقق من Firestore مباشرة
       final userDoc = await _usersCollection.doc(uid).get();
       if (userDoc.exists) {
         final userData = userDoc.data() as Map<String, dynamic>;
@@ -759,15 +752,15 @@ class FirebaseDatabaseService {
         }
       });
 
-      await _injuredCollection.where('test_record', isEqualTo: true).get().then((snapshot) => {
+      await _injuredCollection.where('test_record', isEqualTo: true).get().then((snapshot) async {
         for (var doc in snapshot.docs) {
-          doc.reference.delete();
+          await doc.reference.delete();
         }
       });
 
-      await _prisonersCollection.where('test_record', isEqualTo: true).get().then((snapshot) => {
+      await _prisonersCollection.where('test_record', isEqualTo: true).get().then((snapshot) async {
         for (var doc in snapshot.docs) {
-          doc.reference.delete();
+          await doc.reference.delete();
         }
       });
 

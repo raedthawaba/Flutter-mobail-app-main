@@ -103,7 +103,6 @@ class _StatisticsScreenState extends State<StatisticsScreen>
             fontWeight: FontWeight.bold,
           ),
         ),
-        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
