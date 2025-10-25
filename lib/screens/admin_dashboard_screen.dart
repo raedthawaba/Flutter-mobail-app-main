@@ -11,6 +11,7 @@ import 'admin_injured_management_screen.dart';
 import 'admin_prisoners_management_screen.dart';
 import 'admin_users_management_screen.dart';
 import 'admin_settings_screen.dart';
+import 'admin_approval_screen.dart';
 import 'add_martyr_screen.dart';
 import 'add_injured_screen.dart';
 import 'add_prisoner_screen.dart';
@@ -958,6 +959,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       onTap: () {
                         Navigator.pop(context);
                         _navigateToManagement('المستخدمين');
+                      },
+                    ),
+                    const SizedBox(height: 12),
+
+                    // إدارة البيانات المرسلة
+                    _buildMenuItem(
+                      title: 'إدارة البيانات المرسلة',
+                      subtitle: 'مراجعة وإدارة البيانات المرسلة من المستخدمين',
+                      icon: Icons.inbox_outlined,
+                      color: const Color(0xFFFF6F00), // Orange color
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AdminApprovalScreen(),
+                          ),
+                        );
                       },
                     ),
                     const SizedBox(height: 12),

@@ -5,6 +5,7 @@ import '../models/user.dart' as app_user;
 import '../models/martyr.dart';
 import '../models/injured.dart';
 import '../models/prisoner.dart';
+import '../models/pending_data.dart';
 import '../constants/app_constants.dart';
 
 class FirebaseDatabaseService {
@@ -20,6 +21,7 @@ class FirebaseDatabaseService {
   CollectionReference get _martyrsCollection => _firestore.collection('martyrs');
   CollectionReference get _injuredCollection => _firestore.collection('injured');
   CollectionReference get _prisonersCollection => _firestore.collection('prisoners');
+  CollectionReference get _pendingDataCollection => _firestore.collection('pending_data');
 
   // ===== دوال المستخدمين =====
 
@@ -767,6 +769,238 @@ class FirebaseDatabaseService {
       print('✅ تم تنظيف البيانات التجريبية بنجاح');
     } catch (e) {
       throw Exception('خطأ في تنظيف البيانات: $e');
+    }
+  }
+
+  // ===== دوال إدارة البيانات المرسلة للمسؤول =====
+  
+  /// إرسال بيانات جديدة للمراجعة
+  Future<String> submitDataForReview({
+    required String type, // 'martyr', 'injured', 'prisoner'
+    required Map<String, dynamic> data,
+    String? imageUrl,
+    String? resumeUrl,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('يجب تسجيل الدخول أولاً');
+      }
+
+      final pendingData = PendingData(
+        id: null,
+        type: type,
+        status: 'pending',
+        data: data,
+        imageUrl: imageUrl,
+        resumeUrl: resumeUrl,
+        submittedBy: user.uid,
+        submittedAt: DateTime.now(),
+      );
+
+      final docRef = await _pendingDataCollection.add(pendingData.toFirestore());
+      
+      print('✅ تم إرسال البيانات للمراجعة - ID: ${docRef.id}');
+      return docRef.id;
+    } catch (e) {
+      throw Exception('خطأ في إرسال البيانات: $e');
+    }
+  }
+
+  /// جلب جميع البيانات المرسلة (للمسؤول)
+  Future<List<PendingData>> getPendingData({
+    String? statusFilter, // 'pending', 'approved', 'rejected', 'hidden'
+    String? typeFilter, // 'martyr', 'injured', 'prisoner'
+    int limit = 50,
+  }) async {
+    try {
+      Query query = _pendingDataCollection;
+      
+      if (statusFilter != null) {
+        query = query.where('status', isEqualTo: statusFilter);
+      }
+      
+      if (typeFilter != null) {
+        query = query.where('type', isEqualTo: typeFilter);
+      }
+      
+      query = query.orderBy('submittedAt', descending: true).limit(limit);
+      
+      final snapshot = await query.get();
+      
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return PendingData.fromFirestore(data).copyWith(id: doc.id);
+      }).toList();
+    } catch (e) {
+      throw Exception('خطأ في جلب البيانات المرسلة: $e');
+    }
+  }
+
+  /// الموافقة على البيانات ونقلها للمجموعة الرئيسية
+  Future<void> approveData(String pendingId, {String? adminNotes}) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('يجب تسجيل الدخول أولاً');
+      }
+
+      final docRef = _pendingDataCollection.doc(pendingId);
+      final doc = await docRef.get();
+      
+      if (!doc.exists) {
+        throw Exception('البيانات غير موجودة');
+      }
+      
+      final pendingData = PendingData.fromFirestore(doc.data()!).copyWith(id: pendingId);
+      
+      // نقل البيانات إلى المجموعة الرئيسية
+      switch (pendingData.type) {
+        case 'martyr':
+          await _martyrsCollection.doc(pendingId).set({
+            ...pendingData.data,
+            'image_url': pendingData.imageUrl,
+            'resume_url': pendingData.resumeUrl,
+            'approved_by': user.uid,
+            'approved_at': FieldValue.serverTimestamp(),
+          });
+          break;
+        case 'injured':
+          await _injuredCollection.doc(pendingId).set({
+            ...pendingData.data,
+            'image_url': pendingData.imageUrl,
+            'resume_url': pendingData.resumeUrl,
+            'approved_by': user.uid,
+            'approved_at': FieldValue.serverTimestamp(),
+          });
+          break;
+        case 'prisoner':
+          await _prisonersCollection.doc(pendingId).set({
+            ...pendingData.data,
+            'image_url': pendingData.imageUrl,
+            'resume_url': pendingData.resumeUrl,
+            'approved_by': user.uid,
+            'approved_at': FieldValue.serverTimestamp(),
+          });
+          break;
+        default:
+          throw Exception('نوع البيانات غير صحيح');
+      }
+      
+      // تحديث حالة البيانات المرسلة
+      await docRef.update({
+        'status': 'approved',
+        'adminNotes': adminNotes ?? '',
+        'adminAction': 'approved',
+        'processedAt': FieldValue.serverTimestamp(),
+        'adminId': user.uid,
+      });
+      
+      print('✅ تمت الموافقة على البيانات وتحويلها للمجموعة الرئيسية');
+    } catch (e) {
+      throw Exception('خطأ في الموافقة على البيانات: $e');
+    }
+  }
+
+  /// رفض البيانات
+  Future<void> rejectData(String pendingId, {required String reason}) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('يجب تسجيل الدخول أولاً');
+      }
+
+      await _pendingDataCollection.doc(pendingId).update({
+        'status': 'rejected',
+        'adminNotes': reason,
+        'adminAction': 'rejected',
+        'processedAt': FieldValue.serverTimestamp(),
+        'adminId': user.uid,
+      });
+      
+      print('✅ تم رفض البيانات');
+    } catch (e) {
+      throw Exception('خطأ في رفض البيانات: $e');
+    }
+  }
+
+  /// إخفاء البيانات من العرض العام
+  Future<void> hideData(String pendingId, {String? reason}) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('يجب تسجيل الدخول أولاً');
+      }
+
+      await _pendingDataCollection.doc(pendingId).update({
+        'status': 'hidden',
+        'adminNotes': reason ?? 'مخفية بواسطة المسؤول',
+        'adminAction': 'hidden',
+        'processedAt': FieldValue.serverTimestamp(),
+        'adminId': user.uid,
+      });
+      
+      print('✅ تم إخفاء البيانات');
+    } catch (e) {
+      throw Exception('خطأ في إخفاء البيانات: $e');
+    }
+  }
+
+  /// حذف البيانات نهائياً
+  Future<void> deleteData(String pendingId) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('يجب تسجيل الدخول أولاً');
+      }
+
+      await _pendingDataCollection.doc(pendingId).delete();
+      
+      print('✅ تم حذف البيانات نهائياً');
+    } catch (e) {
+      throw Exception('خطأ في حذف البيانات: $e');
+    }
+  }
+
+  /// جلب إحصائيات البيانات المرسلة
+  Future<Map<String, int>> getPendingDataStatistics() async {
+    try {
+      final snapshot = await _pendingDataCollection.get();
+      
+      int pending = 0;
+      int approved = 0;
+      int rejected = 0;
+      int hidden = 0;
+      
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final status = data['status'] as String;
+        
+        switch (status) {
+          case 'pending':
+            pending++;
+            break;
+          case 'approved':
+            approved++;
+            break;
+          case 'rejected':
+            rejected++;
+            break;
+          case 'hidden':
+            hidden++;
+            break;
+        }
+      }
+      
+      return {
+        'pending': pending,
+        'approved': approved,
+        'rejected': rejected,
+        'hidden': hidden,
+        'total': snapshot.docs.length,
+      };
+    } catch (e) {
+      throw Exception('خطأ في جلب إحصائيات البيانات المرسلة: $e');
     }
   }
 }

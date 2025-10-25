@@ -8,6 +8,7 @@ import '../models/prisoner.dart';
 import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
 import '../services/file_service.dart';
+import '../services/firebase_database_service.dart';
 
 class AddPrisonerScreen extends StatefulWidget {
   const AddPrisonerScreen({Key? key}) : super(key: key);
@@ -218,33 +219,50 @@ class _AddPrisonerScreenState extends State<AddPrisonerScreen> {
         throw Exception('خطأ في تحديد المستخدم');
       }
 
-      final prisoner = Prisoner(
-        fullName: _fullNameController.text.trim(),
-        tribe: _tribeController.text.trim(),
-        captureDate: _captureDate!,
-        capturePlace: _capturePlaceController.text.trim(),
-        capturedBy: _capturedByController.text.trim(),
-        currentStatus: _currentStatusController.text.trim(),
-        releaseDate: _releaseDate,
-        familyContact: _familyContactController.text.trim(),
-        detentionPlace: _detentionPlaceController.text.trim().isEmpty ? null : _detentionPlaceController.text.trim(),
-        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
-        addedByUserId: userId,
-        photoPath: _photoFile!.path,
-        cvFilePath: _cvFile?.path,
-        status: AppConstants.statusPending,
-        createdAt: DateTime.now(),
+      // تحضير البيانات للإرسال
+      final prisonerData = {
+        'fullName': _fullNameController.text.trim(),
+        'tribe': _tribeController.text.trim(),
+        'captureDate': _captureDate!.toIso8601String(),
+        'capturePlace': _capturePlaceController.text.trim(),
+        'capturedBy': _capturedByController.text.trim(),
+        'currentStatus': _currentStatusController.text.trim(),
+        'releaseDate': _releaseDate?.toIso8601String(),
+        'familyContact': _familyContactController.text.trim(),
+        'detentionPlace': _detentionPlaceController.text.trim().isEmpty ? null : _detentionPlaceController.text.trim(),
+        'notes': _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        'addedByUserId': userId,
+        'status': AppConstants.statusPending,
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+
+      // إرسال الصورة والسيرة
+      String? imageUrl;
+      String? resumeUrl;
+      
+      if (_photoFile != null) {
+        imageUrl = _photoFile!.path;
+      }
+      
+      if (_cvFile != null) {
+        resumeUrl = _cvFile!.path;
+      }
+
+      // إرسال البيانات للمراجعة
+      await FirebaseDatabaseService().submitDataForReview(
+        type: 'prisoner',
+        data: prisonerData,
+        imageUrl: imageUrl,
+        resumeUrl: resumeUrl,
       );
 
-      await _firestoreService.insertPrisoner(prisoner);
-
-      _showSuccessMessage('تم إرسال بيانات الأسير بنجاح إلى السحابة! سيتم مراجعتها من قبل المسؤول.');
+      _showSuccessMessage('تم إرسال بيانات الأسير بنجاح! سيتم مراجعتها من قبل المسؤول قبل التوثيق النهائي.');
 
       // العودة للصفحة السابقة
       Navigator.of(context).pop();
 
     } catch (e) {
-      _showErrorMessage('خطأ في حفظ البيانات: $e');
+      _showErrorMessage('خطأ في إرسال البيانات: $e');
     } finally {
       if (mounted) {
         setState(() {
