@@ -6,6 +6,7 @@ import 'login_screen.dart';
 import 'add_martyr_screen.dart';
 import 'add_injured_screen.dart';
 import 'add_prisoner_screen.dart';
+import 'user_browse_data_screen.dart';
 
 class UserDashboardScreen extends StatefulWidget {
   const UserDashboardScreen({Key? key}) : super(key: key);
@@ -79,6 +80,28 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
         break;
       case AppConstants.sectionPrisoners:
         destinationScreen = const AddPrisonerScreen();
+        break;
+      default:
+        return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => destinationScreen),
+    );
+  }
+
+  void _navigateToBrowseData(String dataType) {
+    Widget destinationScreen;
+    
+    switch (dataType) {
+      case 'martyrs':
+        destinationScreen = const UserBrowseDataScreen(dataType: 'martyrs');
+        break;
+      case 'injured':
+        destinationScreen = const UserBrowseDataScreen(dataType: 'injured');
+        break;
+      case 'prisoners':
+        destinationScreen = const UserBrowseDataScreen(dataType: 'prisoners');
         break;
       default:
         return;
@@ -176,10 +199,70 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // قائمة الأقسام
+                // قسم تصفح البيانات (للعرض فقط)
+                const Text(
+                  'تصفح البيانات المعتمدة',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryGreen,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+
                 Expanded(
                   child: ListView(
                     children: [
+                      // بطاقات التصفح
+                      _buildSectionCard(
+                        title: 'تصفح الشهداء',
+                        subtitle: 'عرض بيانات الشهداء المعتمدين',
+                        icon: Icons.visibility,
+                        color: AppColors.primaryRed,
+                        onTap: () => _navigateToBrowseData('martyrs'),
+                      ),
+                      const SizedBox(height: 16),
+
+                      _buildSectionCard(
+                        title: 'تصفح الجرحى',
+                        subtitle: 'عرض بيانات الجرحى المعتمدين',
+                        icon: Icons.visibility,
+                        color: AppColors.warning,
+                        onTap: () => _navigateToBrowseData('injured'),
+                      ),
+                      const SizedBox(height: 16),
+
+                      _buildSectionCard(
+                        title: 'تصفح الأسرى',
+                        subtitle: 'عرض بيانات الأسرى المعتمدين',
+                        icon: Icons.visibility,
+                        color: AppColors.earthBrown,
+                        onTap: () => _navigateToBrowseData('prisoners'),
+                      ),
+                      
+                      const SizedBox(height: 32),
+
+                      // خط فاصل
+                      const Divider(
+                        thickness: 2,
+                        color: AppColors.primaryGreen,
+                      ),
+                      
+                      const SizedBox(height: 16),
+
+                      // قسم إضافة البيانات
+                      const Text(
+                        'تعبئة النماذج الجديدة',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryGreen,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+
                       _buildSectionCard(
                         title: AppConstants.sectionMartyrs,
                         subtitle: 'توثيق بيانات الشهداء',

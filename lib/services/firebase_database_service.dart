@@ -1003,4 +1003,74 @@ class FirebaseDatabaseService {
       throw Exception('خطأ في جلب إحصائيات البيانات المرسلة: $e');
     }
   }
+
+  // ===== دوال تصفح البيانات للمستخدمين =====
+
+  /// جلب جميع الشهداء المعتمدين (للعرض فقط)
+  Future<List<Martyr>> getAllApprovedMartyrs() async {
+    try {
+      final querySnapshot = await _martyrsCollection
+          .where('status', isEqualTo: 'approved')
+          .orderBy('fullName')
+          .get();
+      
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return _convertFirestoreToMartyr(data);
+      }).toList();
+    } catch (e) {
+      throw Exception('خطأ في جلب الشهداء المعتمدين: $e');
+    }
+  }
+
+  /// جلب جميع الجرحى المعتمدين (للعرض فقط)
+  Future<List<Injured>> getAllApprovedInjured() async {
+    try {
+      final querySnapshot = await _injuredCollection
+          .where('status', isEqualTo: 'approved')
+          .orderBy('fullName')
+          .get();
+      
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return _convertFirestoreToInjured(data);
+      }).toList();
+    } catch (e) {
+      throw Exception('خطأ في جلب الجرحى المعتمدين: $e');
+    }
+  }
+
+  /// جلب جميع الأسرى المعتمدين (للعرض فقط)
+  Future<List<Prisoner>> getAllApprovedPrisoners() async {
+    try {
+      final querySnapshot = await _prisonersCollection
+          .where('status', isEqualTo: 'approved')
+          .orderBy('fullName')
+          .get();
+      
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return _convertFirestoreToPrisoner(data);
+      }).toList();
+    } catch (e) {
+      throw Exception('خطأ في جلب الأسرى المعتمدين: $e');
+    }
+  }
+
+  /// دالة موحدة لجلب جميع البيانات المعتمدة (للاستخدام في شاشة التصفح)
+  Future<List<dynamic>> getAllApprovedData(String dataType) async {
+    switch (dataType) {
+      case 'martyrs':
+        return await getAllApprovedMartyrs();
+      case 'injured':
+        return await getAllApprovedInjured();
+      case 'prisoners':
+        return await getAllApprovedPrisoners();
+      default:
+        throw Exception('نوع البيانات غير مدعوم: $dataType');
+    }
+  }
 }
