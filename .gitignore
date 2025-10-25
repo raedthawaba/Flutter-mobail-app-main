@@ -20,8 +20,6 @@
 **/.eggs/
 **/lib/
 **/lib64/
-# Flutter lib folder should NOT be ignored
-# **/lib/
 **/parts/
 **/sdist/
 **/var/
