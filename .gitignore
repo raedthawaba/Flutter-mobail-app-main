@@ -332,8 +332,7 @@
 **/.springBeans
 **/.sts4-cache
 **/bin/
-# Root tmp directory should NOT be ignored for GitHub repository structure
-# **/tmp/
+**/tmp/
 **/*.tmp
 **/*.bak
 **/*.swp
@@ -552,8 +551,7 @@
 **/spec/examples.txt
 **/test/tmp/
 **/test/version_tmp/
-# Root tmp directory should NOT be ignored for GitHub repository structure
-# **/tmp/
+**/tmp/
 **/.yardoc/
 **/_yardoc/
 **/doc/
@@ -568,8 +566,7 @@
 
 # Rails
 **/log/
-# Root tmp directory should NOT be ignored for GitHub repository structure
-# **/tmp/
+**/tmp/
 **/db/*.sqlite3
 **/db/*.sqlite3-journal
 **/db/*.sqlite3-*
@@ -695,8 +692,7 @@
 # Eclipse
 **/.metadata
 **/bin/
-# Root tmp directory should NOT be ignored for GitHub repository structure
-# **/tmp/
+**/tmp/
 **/*.tmp
 **/*.bak
 **/*.swp
@@ -756,8 +752,7 @@
 **/*.log
 **/log/
 **/debug/
-# Root tmp directory should NOT be ignored for GitHub repository structure
-# **/tmp/
+**/tmp/
 **/temp/
 **/.tmp/
 **/.temp/
