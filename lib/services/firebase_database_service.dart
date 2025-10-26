@@ -1011,14 +1011,18 @@ class FirebaseDatabaseService {
     try {
       final querySnapshot = await _martyrsCollection
           .where('status', isEqualTo: 'approved')
-          .orderBy('fullName')
           .get();
       
-      return querySnapshot.docs.map((doc) {
+      List<Martyr> martyrs = querySnapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return _convertFirestoreToMartyr(data);
       }).toList();
+      
+      // ترتيب البيانات في Flutter بدلاً من Firestore
+      martyrs.sort((a, b) => a.fullName.compareTo(b.fullName));
+      
+      return martyrs;
     } catch (e) {
       throw Exception('خطأ في جلب الشهداء المعتمدين: $e');
     }
@@ -1029,14 +1033,18 @@ class FirebaseDatabaseService {
     try {
       final querySnapshot = await _injuredCollection
           .where('status', isEqualTo: 'approved')
-          .orderBy('fullName')
           .get();
       
-      return querySnapshot.docs.map((doc) {
+      List<Injured> injured = querySnapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return _convertFirestoreToInjured(data);
       }).toList();
+      
+      // ترتيب البيانات في Flutter بدلاً من Firestore
+      injured.sort((a, b) => a.fullName.compareTo(b.fullName));
+      
+      return injured;
     } catch (e) {
       throw Exception('خطأ في جلب الجرحى المعتمدين: $e');
     }
@@ -1047,14 +1055,18 @@ class FirebaseDatabaseService {
     try {
       final querySnapshot = await _prisonersCollection
           .where('status', isEqualTo: 'approved')
-          .orderBy('fullName')
           .get();
       
-      return querySnapshot.docs.map((doc) {
+      List<Prisoner> prisoners = querySnapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return _convertFirestoreToPrisoner(data);
       }).toList();
+      
+      // ترتيب البيانات في Flutter بدلاً من Firestore
+      prisoners.sort((a, b) => a.fullName.compareTo(b.fullName));
+      
+      return prisoners;
     } catch (e) {
       throw Exception('خطأ في جلب الأسرى المعتمدين: $e');
     }

@@ -58,9 +58,46 @@ class _UserBrowseDataScreenState extends State<UserBrowseDataScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ في تحميل البيانات: $e')),
+      setState(() {
+        _dataList = [];
+        _isLoading = false;
+      });
+      
+      // معالجة أفضل للأخطاء
+      String errorMessage = 'خطأ في تحميل البيانات';
+      String errorDescription = 'يرجى المحاولة مرة أخرى لاحقاً';
+      
+      if (e.toString().contains('failed-precondition')) {
+        errorMessage = 'خطأ في الاتصال بقاعدة البيانات';
+        errorDescription = 'يتطلب إعداد فهارس قاعدة البيانات';
+      } else if (e.toString().contains('permission-denied')) {
+        errorMessage = 'لا تملك صلاحية للوصول للبيانات';
+        errorDescription = 'يرجى التواصل مع الإدارة';
+      } else if (e.toString().contains('not-found')) {
+        errorMessage = 'قاعدة البيانات غير متوفرة';
+        errorDescription = 'يرجى المحاولة لاحقاً';
+      }
+      
+      // عرض رسالة خطأ ودية
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(errorMessage),
+          content: Text(errorDescription),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('فهمت'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _loadData(); // إعادة المحاولة
+              },
+              child: const Text('إعادة المحاولة'),
+            ),
+          ],
+        ),
       );
     }
   }
